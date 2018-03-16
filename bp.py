@@ -76,8 +76,8 @@ class FCLayer(Layer):
     Layer.__init__(self, name, size, prev, activation)
     assert prev != None
     # randomly initiate weight and bias
-    self._w = np.random.uniform(-1.0/prev._size, 1.0/prev._size, size=(size, prev._size))
-    self._b = np.random.normal(size=(size, 1))
+    self._w = np.random.uniform(0, 2.0/prev._size, size=(size, prev._size))
+    self._b = np.random.normal(scale=1.0, size=(size, 1))
     self._dLdw = np.zeros((size, prev._size))
     self._dLdb = np.zeros((size, 1))
 
@@ -109,6 +109,9 @@ class FCLayer(Layer):
 def relu(result, output=None):
   return np.maximum(result, 0, output)
 
+def leaky_relu(result, alpha, output=None):
+  return np.maximum(result, result*alpha, output)
+
 def softmax(result, output=None):
   temp = np.exp(result - np.max(result, 0))
   return np.divide(temp, np.sum(temp, 0), output)
@@ -135,27 +138,41 @@ class ReLU(Activation):
     dLdResult[self._input>0] = 1
     np.multiply(dLdResult, dLdOutput, dLdResult)
 
+class LeakyReLU(Activation):
+  def __init__(self, size, alpha):
+    Activation.__init__(self, size)
+    self._alpha = alpha
+  def calc(self, result, output):
+    np.add(result, 0, self._input)
+    leaky_relu(result, self._alpha, output)
+  def deri(self, dLdOutput, dLdResult):
+    dLdResult[self._input<=0] = self._alpha
+    dLdResult[self._input>0] = 1
+    np.multiply(dLdResult, dLdOutput, dLdResult)
+
 
 if __name__ == "__main__":
   output = 10
   input = 28*28
   # setup network graph
+  layers = [600, 1000, 300]
+  alpha = 0.1
   IL = InputLayer(input)
-  FC1 = FCLayer("fc1", 60, IL, ReLU(60))
-  FC2 = FCLayer("fc2", 100, FC1, ReLU(100))
-  FC3 = FCLayer("fc3", 30, FC2, ReLU(30))
+  FC1 = FCLayer("fc1", layers[0], IL, LeakyReLU(layers[0], alpha))
+  FC2 = FCLayer("fc2", layers[1], FC1, LeakyReLU(layers[1], alpha))
+  FC3 = FCLayer("fc3", layers[2], FC2, LeakyReLU(layers[2], alpha))
   OL = FCLayer("output", output, FC3, None)
 
   train, test = readMnistData("train-images.idx3-ubyte", "train-labels.idx1-ubyte", 12)
   batchSize = 100
-  epoch = 5
-  learningRate = 0.003
+  epoch = 20
+  learningRate = 0.001
 
   tempTestSize = 3000
 
   for i in range(epoch):
     progress = 0
-    #for j in range(1):
+    #for j in range(10):
     while progress + batchSize < len(train) - tempTestSize:
       batch = [train[i].pixels for i in range(progress, progress + batchSize)]
       batchlabel = [train[i].labelArray for i in range(progress, progress + batchSize)]

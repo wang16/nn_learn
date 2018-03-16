@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import Image
+#import Image
 import os
 
 class MnistData:
@@ -13,8 +13,9 @@ class MnistData:
     self.labelArray[self.label-1] = 1
 
   def saveToBitmap(self, path):
-    im = Image.fromarray(np.reshape(self.pixels, [self.height, self.width]))
-    im.save(path)
+    #im = Image.fromarray(np.reshape(self.pixels, [self.height, self.width]))
+    #im.save(path)
+    pass
 
 
 
