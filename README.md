@@ -1,3 +1,3 @@
-- [1] BP from scratch
+- [X] BP from scratch
 - [ ] CNN from scratch
 - [ ] LSTM from scratch
