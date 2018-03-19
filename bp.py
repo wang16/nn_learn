@@ -1,5 +1,6 @@
 import numpy as np
 import datetime
+import math, sys
 
 from logger import Logger
 from read_mnist import readMnistData
@@ -7,6 +8,7 @@ from layers.input import InputLayer
 from layers.fc import FCLayer
 from layers.relu import ReLU
 from layers.softmax import SoftMax
+
 
 Logger.setLogLevel(Logger.INFO)
 
@@ -31,6 +33,7 @@ if __name__ == "__main__":
   train, test = readMnistData("train-images.idx3-ubyte", "train-labels.idx1-ubyte", 12)
   batchSize = 100
   epoch = 20
+  enableBackPropCheck = False
   """
   We want the initial expectation of all layers' result to be fixed.
   And for using ReLU, we want it to be mostly positive, so we choose 0.5 over 0.
@@ -50,7 +53,7 @@ if __name__ == "__main__":
   learningRate = 0.001
 
   tempTestSize = 3000
-
+  checkedProp = False
   for e in range(epoch):
     Logger.info("EPOCH", "epoch %d" % e)
     start = datetime.datetime.now()
@@ -68,6 +71,24 @@ if __name__ == "__main__":
       Logger.info(tag, "Loss: %f" % loss)
 
       SOFTMAX.backward(target)
+
+      if enableBackPropCheck and e == 1 and not checkedProp:
+        checkPropOutput = []
+        IL.checkBackProp(0.0000001, checkPropOutput,
+                         lambda : -np.sum(np.multiply(target, np.log(SOFTMAX._output)), (0, 1)) / batchSize)
+        Logger.info("CHECK_BACKPROP", "Number of params is %d" % len(checkPropOutput))
+        derivativeToCheck = np.array([checkPropOutput[i][0]/batchSize for i in range(len(checkPropOutput))])
+        derivativeNumberred = np.array([checkPropOutput[i][1] for i in range(len(checkPropOutput))])
+        diff = derivativeToCheck-derivativeNumberred
+        error = math.sqrt(np.sum(np.multiply(diff, diff))) / \
+                (math.sqrt(np.sum(np.multiply(derivativeNumberred, derivativeNumberred))) + \
+                 math.sqrt(np.sum(np.multiply(derivativeToCheck, derivativeToCheck))))
+        Logger.info("CHECK_BACKPROP", "checked result %f" % error)
+        if (error > 0.00001):
+          Logger.error("CHECK_BACKPROP", "back prop is not calculated right")
+          sys.exit(-1)
+        checkedProp = True
+
       FC1.updateParam(learningRate)
       FC2.updateParam(learningRate)
       FC3.updateParam(learningRate)

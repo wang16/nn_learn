@@ -31,6 +31,12 @@ class Layer:
   def updateParam(self, rate):
     pass
 
+  def getDerivative(self, idx):
+    return None
+
+  def adjustParam(self, idx, delta):
+    pass
+
   def forward(self):
     self.calcValue()
     #Logger.verbose(TAG, "forward pass of %s:\nresult:\n%s\noutput:\n%s" %
@@ -46,3 +52,22 @@ class Layer:
     #               (self._name, dLdOutput, self._dLdResult))
     if self._prev != None:
       self._prev.backward(self._dLdInput)
+
+  def checkBackProp(self, delta, output, lossCalc):
+    Logger.info("CHECK_BACKPROP", "check for %s" % self._name)
+    idx = 0
+    while(True):
+      derivative = self.getDerivative(idx)
+      if derivative == None:
+        break
+      self.adjustParam(idx, delta)
+      self.forward()
+      loss1 = lossCalc()
+      self.adjustParam(idx, -2*delta)
+      self.forward()
+      loss2 = lossCalc()
+      self.adjustParam(idx, delta)
+      idx += 1
+      output.append((derivative, (loss1-loss2) / (delta*2)))
+    if self._next != None:
+      self._next.checkBackProp(delta, output, lossCalc)

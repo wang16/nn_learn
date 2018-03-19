@@ -26,3 +26,19 @@ class FCLayer(Layer):
     np.add(self._w, self._dLdw * -rate, self._w)
     np.add(self._b, self._dLdb * -rate, self._b)
 
+  def getDerivative(self, idx):
+    if idx < self._w.size:
+      return self._dLdw[(idx / self._w.shape[1], idx % self._w.shape[1])]
+    bidx = idx - self._w.size
+    if bidx < self._b.size:
+      return self._dLdb[(bidx,0)]
+    return None
+
+  def adjustParam(self, idx, delta):
+    if idx < self._w.size:
+      self._w[(idx / self._w.shape[1], idx % self._w.shape[1])] += delta
+      return
+    bidx = idx - self._w.size
+    if bidx < self._b.size:
+      self._b[(bidx,0)] += delta
+      return
