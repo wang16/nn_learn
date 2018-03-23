@@ -13,8 +13,10 @@ class Layer:
     self._size = size
     self._output = None
     self._dLdInput = None
+    self._batchSize = 1
 
   def setBatchSize(self, n):
+    self._batchSize = n
     self._output = np.zeros((self._size, n))
     self._dLdOutput = np.zeros((self._size, n))
     if self._prev != None:
@@ -28,7 +30,7 @@ class Layer:
   def calcDeri(self):
     pass
 
-  def updateParam(self, rate):
+  def updateParam(self, rate, lambd):
     pass
 
   def getDerivative(self, idx):

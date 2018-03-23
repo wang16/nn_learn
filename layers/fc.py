@@ -6,7 +6,7 @@ class FCLayer(Layer):
     Layer.__init__(self, name, size, prev)
     assert prev != None
     # randomly initiate weight and bias
-    self._w = np.random.uniform(0, 2.0 / 3.0 /prev._size, size=(size, prev._size))
+    self._w = np.random.uniform(0, 2.0 / 3 / prev._size, size=(size, prev._size))
     self._b = np.random.uniform(0, 0.5, size=(size, 1))
     self._dLdw = np.zeros((size, prev._size))
     self._dLdb = np.zeros((size, 1))
@@ -20,11 +20,13 @@ class FCLayer(Layer):
     np.matmul(self._w.transpose(), self._dLdOutput, self._dLdInput)
     np.matmul(self._dLdOutput, self._prev._output.transpose(), self._dLdw)
     self._dLdb = np.sum(self._dLdOutput, (1)).reshape((self._size, 1))
+    self._dLdw /= self._batchSize
+    self._dLdb /= self._batchSize
 
-  def updateParam(self, rate):
+  def updateParam(self, rate, lambd):
     #Logger.verbose("UPDATE", "update param: %s\n%s" % (self._name, self._dLdw))
-    np.add(self._w, self._dLdw * -rate, self._w)
-    np.add(self._b, self._dLdb * -rate, self._b)
+    np.add(self._w * (1-rate*lambd), self._dLdw * -rate, self._w)
+    np.add(self._b * (1-rate*lambd), self._dLdb * -rate, self._b)
 
   def getDerivative(self, idx):
     if idx < self._w.size:

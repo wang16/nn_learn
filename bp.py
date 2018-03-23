@@ -31,26 +31,14 @@ if __name__ == "__main__":
   SOFTMAX = SoftMax("softmax", OL)
 
   train, test = readMnistData("train-images.idx3-ubyte", "train-labels.idx1-ubyte", 12)
+  #allTrainData = np.array([train[i].pixels for i in range(len(train))])
+  #average = np.average(allTrainData, 0)
+  #variance = np.var(allTrainData, axis=0) + 0.00000001
   batchSize = 100
   epoch = 20
   enableBackPropCheck = False
-  """
-  We want the initial expectation of all layers' result to be fixed.
-  And for using ReLU, we want it to be mostly positive, so we choose 0.5 over 0.
-  For input, we normalize it by dividing 256.(Actually, could be better normalized)
-  For each layer's result:
-   result[i]= ReLU(result[i-1]) * w[i] + b[i] ~= E(w[i]) * sum(ReLU(result[i-1])) + E(b[i])
-  Since ReLU drops out the negative input connections,
-  by casually estimating, sum(ReLU(X)) ~= sum(X) * 1.5
-   E(sum(ReLU)) > E(sum) ~= input_size * E(result[i-1]) * 1.5 = input_size * 0.75
-   E(W) * input_size * 0.75 + E(b) = 0.5
-  So we initialize weight randomly at [0, 2/(3*input_size)), bias randomly at [0, 0.5)
-  Notice that when calculate derivative, we don't divide batch size,
-  so the batch size is actually merged into learning rate.
-  We hope the output wouldn't easily fall down to negative value,
-  so we pick (0.5/5/batchSize) as learning rate, which is 0.001
-  """
-  learningRate = 0.001
+  learningRate = 0.1
+  lambd = 0 if enableBackPropCheck else 0.01
 
   tempTestSize = 3000
   checkedProp = False
@@ -61,7 +49,7 @@ if __name__ == "__main__":
     tag = "ITER%d" % e
     # for j in range(10):
     while progress + batchSize < len(train) - tempTestSize:
-      batch = [train[i].pixels for i in range(progress, progress + batchSize)]
+      batch = [(train[i].pixels - 0)/256.0 for i in range(progress, progress + batchSize)]
       batchlabel = [train[i].labelArray for i in range(progress, progress + batchSize)]
       target = np.array(batchlabel).transpose()
       IL.setData(np.array(batch).transpose(), batchSize)
@@ -89,10 +77,10 @@ if __name__ == "__main__":
           sys.exit(-1)
         checkedProp = True
 
-      FC1.updateParam(learningRate)
-      FC2.updateParam(learningRate)
-      FC3.updateParam(learningRate)
-      OL.updateParam(learningRate)
+      FC1.updateParam(learningRate, lambd)
+      FC2.updateParam(learningRate, lambd)
+      FC3.updateParam(learningRate, lambd)
+      OL.updateParam(learningRate, lambd)
 
       predict = np.argmax(SOFTMAX._output, (0))
       labels = np.argmax(np.array(batchlabel).transpose(), (0))
@@ -107,7 +95,7 @@ if __name__ == "__main__":
     cost = datetime.datetime.now() - start
     Logger.warn("EPOCH", "epoch %d finished cost %d s" % (e, cost.total_seconds()))
 
-  batch = [train[i].pixels for i in range(len(train) - tempTestSize, len(train))]
+  batch = [(train[i].pixels - 0)/256.0 for i in range(len(train) - tempTestSize, len(train))]
   batchlabel = [train[i].labelArray for i in range(len(train) - tempTestSize, len(train))]
   IL.setData(np.array(batch).transpose(), tempTestSize)
   IL.forward()
