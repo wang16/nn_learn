@@ -32,6 +32,10 @@ def _reverse_mapping(output, map, input):
     input[tuple(map[coords])] += output[coords]
     flat.next()
 
+"""
+Assuming input is organized as (channel, width, height) before flatten.
+Therefore, the output will be the same way.
+"""
 class ConvLayer(Layer):
   def _calcWindows(self):
     self._windowNum = [
@@ -69,7 +73,7 @@ class ConvLayer(Layer):
               continue
             idxInKernal = h*self._kernalInfo[WIDTH] + w
             idxInRaw = y * self._inputInfo[WIDTH] + x
-            for c in range(self._inputInfo[DEPTH]):
+            for c in range(self._inputInfo[CHANNEL]):
               k = c * kernalSize + idxInKernal
               for s in range(n):
                 self._inputMapping[s * windowSize + windowIdx][k][0] = c * rawSize + idxInRaw
@@ -110,22 +114,41 @@ class ConvLayer(Layer):
     self._setupIOMapping(n)
 
   def calcValue(self):
+    #timestamp = [0] * 5
+    #timestamp[0] = datetime.datetime.now()
     _mapping(self._prev._output, self._inputMapping, self._inputTransfom)
+    #timestamp[1] = datetime.datetime.now()
     np.matmul(self._inputTransfom, self._kernal, self._outputTransform)
+    #timestamp[2] = datetime.datetime.now()
     np.add(self._outputTransform, self._bias, self._outputTransform)
+    #timestamp[3] = datetime.datetime.now()
     _mapping(self._outputTransform, self._outputMapping, self._output)
+    #timestamp[4] = datetime.datetime.now()
+    #for i in range(4):
+    #  print("step %d in conv forward cost %s" % (i+1, timestamp[i+1] - timestamp[i]))
 
   def calcDeri(self):
+    #timestamp = [0] * 6
+    #timestamp[0] = datetime.datetime.now()
     _reverse_mapping(self._dLdOutput, self._outputMapping, self._dLdOutputTransform)
-    np.matmul(self._kernal.transpose(), self._dLdOutputTransform, self._dLdInputTransform)
+    #timestamp[1] = datetime.datetime.now()
+    np.matmul(self._dLdOutputTransform, self._kernal.transpose(), self._dLdInputTransform)
+    #timestamp[2] = datetime.datetime.now()
     _reverse_mapping(self._dLdInputTransform, self._inputMapping, self._dLdInput)
-    np.matmul(self._dLdOutputTransform, self._inputTransfom.transpose(), self._dLdKernal)
+    #timestamp[3] = datetime.datetime.now()
+    np.matmul(self._inputTransfom.transpose(), self._dLdOutputTransform, self._dLdKernal)
+    #timestamp[4] = datetime.datetime.now()
     self._dLdb = np.sum(self._dLdOutputTransform, (0)).reshape((1, self._kernalInfo[DEPTH]))
+    self._dLdKernal /= self._batchSize
+    self._dLdb /= self._batchSize
+    #timestamp[5] = datetime.datetime.now()
+    #for i in range(5):
+    #  print("step %d in conv backward cost %s" % (i+1, timestamp[i+1] - timestamp[i]))
 
-  def updateParam(self, rate):
+  def updateParam(self, rate, lambd):
     #Logger.verbose("UPDATE", "update param: %s\n%s" % (self._name, self._dLdw))
-    np.add(self._kernal, self._dLdKernal * -rate, self._kernal)
-    np.add(self._bias, self._dLdb * -rate, self._bias)
+    np.add(self._kernal * (1-rate*lambd), self._dLdKernal * -rate, self._kernal)
+    np.add(self._bias * (1-rate*lambd), self._dLdb * -rate, self._bias)
 
   def getDerivative(self, idx):
     if idx < self._kernal.size:

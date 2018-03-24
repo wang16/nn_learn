@@ -6,8 +6,8 @@ class FCLayer(Layer):
     Layer.__init__(self, name, size, prev)
     assert prev != None
     # randomly initiate weight and bias
-    self._w = np.random.uniform(0, 2.0 / 3 / prev._size, size=(size, prev._size))
-    self._b = np.random.uniform(0, 0.5, size=(size, 1))
+    self._w = np.random.uniform(0, 2.0 / prev._size, size=(size, prev._size))
+    self._b = np.zeros((size, 1))
     self._dLdw = np.zeros((size, prev._size))
     self._dLdb = np.zeros((size, 1))
 
