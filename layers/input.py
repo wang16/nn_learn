@@ -7,7 +7,7 @@ class InputLayer(Layer):
 
   def setData(self, samples, batchSize):
     self.setBatchSize(batchSize)
-    np.divide(samples, 256.0, self._output)
+    np.add(samples, 0, self._output)
 
   def backward(self, dLdOutput):
     pass

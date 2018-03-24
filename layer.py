@@ -13,8 +13,10 @@ class Layer:
     self._size = size
     self._output = None
     self._dLdInput = None
+    self._batchSize = 1
 
   def setBatchSize(self, n):
+    self._batchSize = n
     self._output = np.zeros((self._size, n))
     self._dLdOutput = np.zeros((self._size, n))
     if self._prev != None:
@@ -28,7 +30,13 @@ class Layer:
   def calcDeri(self):
     pass
 
-  def updateParam(self, rate):
+  def updateParam(self, rate, lambd):
+    pass
+
+  def getDerivative(self, idx):
+    return None
+
+  def adjustParam(self, idx, delta):
     pass
 
   def forward(self):
@@ -46,3 +54,22 @@ class Layer:
     #               (self._name, dLdOutput, self._dLdResult))
     if self._prev != None:
       self._prev.backward(self._dLdInput)
+
+  def checkBackProp(self, delta, output, lossCalc):
+    Logger.info("CHECK_BACKPROP", "check for %s" % self._name)
+    idx = 0
+    while(True):
+      derivative = self.getDerivative(idx)
+      if derivative == None:
+        break
+      self.adjustParam(idx, delta)
+      self.forward()
+      loss1 = lossCalc()
+      self.adjustParam(idx, -2*delta)
+      self.forward()
+      loss2 = lossCalc()
+      self.adjustParam(idx, delta)
+      idx += 1
+      output.append((derivative, (loss1-loss2) / (delta*2)))
+    if self._next != None:
+      self._next.checkBackProp(delta, output, lossCalc)

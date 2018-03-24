@@ -8,6 +8,8 @@ from layers.input import InputLayer
 from layers.fc import FCLayer
 from layers.relu import ReLU
 from layers.softmax import SoftMax
+from layers.conv import ConvLayer
+from layers.max_pooling import MaxPooling
 
 
 Logger.setLogLevel(Logger.INFO)
@@ -18,22 +20,19 @@ if __name__ == "__main__":
   output = 10
   input = 28 * 28
   # setup network graph
-  layers = [600, 1000, 300]
-  alpha = 0
   IL = InputLayer(input)
-  FC1 = FCLayer("fc1", layers[0], IL)
-  ACT1 = ReLU("relu1", FC1)
-  FC2 = FCLayer("fc2", layers[1], ACT1)
-  ACT2 = ReLU("relu2", FC2)
-  FC3 = FCLayer("fc3", layers[2], ACT2)
-  ACT3 = ReLU("relu3", FC3)
-  OL = FCLayer("output", output, ACT3)
+  CONV = ConvLayer("conv", 12, 4, 4, 2, IL, 28, 28, 1)
+  ACT1 = ReLU("relu", CONV)
+  POOL = MaxPooling("pooling", 2, 2, 13, 13, 12, ACT1)
+  FC = FCLayer("fc", 60, POOL)
+  ACT2 = ReLU("relu2", FC)
+  OL = FCLayer("output", output, ACT2)
   SOFTMAX = SoftMax("softmax", OL)
 
   train, test = readMnistData("train-images.idx3-ubyte", "train-labels.idx1-ubyte", 12)
-  #allTrainData = np.array([train[i].pixels for i in range(len(train))])
-  #average = np.average(allTrainData, 0)
-  #variance = np.var(allTrainData, axis=0) + 0.00000001
+  allTrainData = np.array([train[i].pixels for i in range(len(train))])
+  average = 0 # np.average(allTrainData, 0)
+  variance = 256.0 # np.var(allTrainData, axis=0) + 0.00000001
   batchSize = 100
   epoch = 20
   enableBackPropCheck = False
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     tag = "ITER%d" % e
     # for j in range(10):
     while progress + batchSize < len(train) - tempTestSize:
-      batch = [(train[i].pixels - 0)/256.0 for i in range(progress, progress + batchSize)]
+      batch = [(train[i].pixels - average)/variance for i in range(progress, progress + batchSize)]
       batchlabel = [train[i].labelArray for i in range(progress, progress + batchSize)]
       target = np.array(batchlabel).transpose()
       IL.setData(np.array(batch).transpose(), batchSize)
@@ -77,9 +76,8 @@ if __name__ == "__main__":
           sys.exit(-1)
         checkedProp = True
 
-      FC1.updateParam(learningRate, lambd)
-      FC2.updateParam(learningRate, lambd)
-      FC3.updateParam(learningRate, lambd)
+      CONV.updateParam(learningRate, lambd)
+      FC.updateParam(learningRate, lambd)
       OL.updateParam(learningRate, lambd)
 
       predict = np.argmax(SOFTMAX._output, (0))
@@ -95,7 +93,7 @@ if __name__ == "__main__":
     cost = datetime.datetime.now() - start
     Logger.warn("EPOCH", "epoch %d finished cost %d s" % (e, cost.total_seconds()))
 
-  batch = [(train[i].pixels - 0)/256.0 for i in range(len(train) - tempTestSize, len(train))]
+  batch = [(train[i].pixels - average)/variance for i in range(len(train) - tempTestSize, len(train))]
   batchlabel = [train[i].labelArray for i in range(len(train) - tempTestSize, len(train))]
   IL.setData(np.array(batch).transpose(), tempTestSize)
   IL.forward()
