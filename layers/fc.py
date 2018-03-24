@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from layer import Layer
 
 class FCLayer(Layer):
@@ -10,6 +11,10 @@ class FCLayer(Layer):
     self._b = np.zeros((size, 1))
     self._dLdw = np.zeros((size, prev._size))
     self._dLdb = np.zeros((size, 1))
+    self._Vdw = np.zeros((size, prev._size))
+    self._Vdb = np.zeros((size, 1))
+    self._Sdw = np.zeros((size, prev._size))
+    self._Sdb = np.zeros((size, 1))
 
   def calcValue(self):
     input = self._prev._output
@@ -23,10 +28,17 @@ class FCLayer(Layer):
     self._dLdw /= self._batchSize
     self._dLdb /= self._batchSize
 
-  def updateParam(self, rate, lambd):
+  def updateParam(self, rate, lambd, betaS=0.999, betaV=0.9):
     #Logger.verbose("UPDATE", "update param: %s\n%s" % (self._name, self._dLdw))
-    np.add(self._w * (1-rate*lambd), self._dLdw * -rate, self._w)
-    np.add(self._b * (1-rate*lambd), self._dLdb * -rate, self._b)
+    # epsilon = 0.00000001
+    # self._Vdw = (betaV * self._Vdw + (1-betaV) * self._dLdw) / (1-math.pow(betaV, self._iter))
+    # self._Vdb = (betaV * self._Vdb + (1-betaV) * self._dLdb) / (1-math.pow(betaV, self._iter))
+    # self._Sdw = (betaS * self._Sdw + (1-betaS) * np.multiply(self._dLdw, self._dLdw)) / (1-math.pow(betaS, self._iter))
+    # self._Sdb = (betaS * self._Sdb + (1-betaS) * np.multiply(self._dLdb, self._dLdb)) / (1-math.pow(betaS, self._iter))
+    # adamW = self._Vdw / (np.sqrt(self._Sdw) + epsilon)
+    # adamB = self._Vdb / (np.sqrt(self._Sdb) + epsilon)
+    np.add(self._w, (self._dLdw + self._w * lambd) * -rate, self._w)
+    np.add(self._b, (self._dLdb + self._b * lambd) * -rate, self._b)
 
   def getDerivative(self, idx):
     if idx < self._w.size:

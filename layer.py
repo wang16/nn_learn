@@ -14,6 +14,7 @@ class Layer:
     self._output = None
     self._dLdInput = None
     self._batchSize = 1
+    self._iter = 0
 
   def setBatchSize(self, n):
     self._batchSize = n
@@ -30,7 +31,7 @@ class Layer:
   def calcDeri(self):
     pass
 
-  def updateParam(self, rate, lambd):
+  def updateParam(self, rate, lambd, betaS=0.999, betaV=0.9):
     pass
 
   def getDerivative(self, idx):
@@ -47,6 +48,7 @@ class Layer:
       self._next.forward()
 
   def backward(self, dLdOutput):
+    self._iter += 1
     assert np.shape(dLdOutput)[0] == self._size
     np.add(dLdOutput, 0, self._dLdOutput)
     self.calcDeri()

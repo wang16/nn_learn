@@ -145,7 +145,7 @@ class ConvLayer(Layer):
     #for i in range(5):
     #  print("step %d in conv backward cost %s" % (i+1, timestamp[i+1] - timestamp[i]))
 
-  def updateParam(self, rate, lambd):
+  def updateParam(self, rate, lambd, betaS=0.999, betaV=0.9):
     #Logger.verbose("UPDATE", "update param: %s\n%s" % (self._name, self._dLdw))
     np.add(self._kernal * (1-rate*lambd), self._dLdKernal * -rate, self._kernal)
     np.add(self._bias * (1-rate*lambd), self._dLdb * -rate, self._bias)
