@@ -21,7 +21,7 @@ class BatchNorm(Layer):
     self._isTraining = isTrain
 
   def calcValue(self):
-    if self._isTraining:
+    if not self._isTraining:
       average = self._average
       variance = self._variance
     else:

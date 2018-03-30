@@ -39,7 +39,7 @@ if __name__ == "__main__":
   average = np.average(allTrainData, 0)
   varianceSqrt = np.sqrt(np.var(allTrainData, axis=0) + 0.00000001)
   batchSize = 100
-  epoch = 20
+  epoch = 5
   enableBackPropCheck = False
   learningRate = 0.1
   lambd = 0 # if enableBackPropCheck else 0.01
@@ -51,6 +51,9 @@ if __name__ == "__main__":
     start = datetime.datetime.now()
     progress = 0
     tag = "ITER%d" % e
+    BN1.setIsTraining(True)
+    BN2.setIsTraining(True)
+    BN3.setIsTraining(True)
     # for j in range(10):
     while progress + batchSize < len(train) - tempTestSize:
       batch = [(train[i].pixels - average) / varianceSqrt for i in range(progress, progress + batchSize)]
@@ -82,8 +85,11 @@ if __name__ == "__main__":
         checkedProp = True
 
       FC1.updateParam(learningRate, lambd, 0, 0)
+      BN1.updateParam(learningRate, lambd, 0, 0)
       FC2.updateParam(learningRate, lambd, 0, 0)
+      BN2.updateParam(learningRate, lambd, 0, 0)
       FC3.updateParam(learningRate, lambd, 0, 0)
+      BN3.updateParam(learningRate, lambd, 0, 0)
       OL.updateParam(learningRate, lambd, 0, 0)
 
       predict = np.argmax(SOFTMAX._output, (0))
@@ -99,6 +105,9 @@ if __name__ == "__main__":
     cost = datetime.datetime.now() - start
     Logger.warn("EPOCH", "epoch %d finished cost %d s" % (e, cost.total_seconds()))
 
+  BN1.setIsTraining(False)
+  BN2.setIsTraining(False)
+  BN3.setIsTraining(False)
   batch = [(train[i].pixels - average) / varianceSqrt for i in range(len(train) - tempTestSize, len(train))]
   batchlabel = [train[i].labelArray for i in range(len(train) - tempTestSize, len(train))]
   IL.setData(np.array(batch).transpose(), tempTestSize)
