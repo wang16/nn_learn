@@ -8,6 +8,7 @@ from layers.input import InputLayer
 from layers.fc import FCLayer
 from layers.relu import ReLU
 from layers.softmax import SoftMax
+from layers.batch_norm import BatchNorm
 
 
 Logger.setLogLevel(Logger.INFO)
@@ -22,18 +23,21 @@ if __name__ == "__main__":
   alpha = 0
   IL = InputLayer(input)
   FC1 = FCLayer("fc1", layers[0], IL)
-  ACT1 = ReLU("relu1", FC1)
+  BN1 = BatchNorm("bn1", FC1)
+  ACT1 = ReLU("relu1", BN1)
   FC2 = FCLayer("fc2", layers[1], ACT1)
-  ACT2 = ReLU("relu2", FC2)
+  BN2 = BatchNorm("bn2", FC2)
+  ACT2 = ReLU("relu2", BN2)
   FC3 = FCLayer("fc3", layers[2], ACT2)
-  ACT3 = ReLU("relu3", FC3)
+  BN3 = BatchNorm("bn3", FC3)
+  ACT3 = ReLU("relu3", BN3)
   OL = FCLayer("output", output, ACT3)
   SOFTMAX = SoftMax("softmax", OL)
 
   train, test = readMnistData("train-images.idx3-ubyte", "train-labels.idx1-ubyte", 12)
   allTrainData = np.array([train[i].pixels for i in range(len(train))])
-  average = 0 # np.average(allTrainData, 0)
-  variance = 256.0 # np.var(allTrainData, axis=0) + 0.00000001
+  average = np.average(allTrainData, 0)
+  varianceSqrt = np.sqrt(np.var(allTrainData, axis=0) + 0.00000001)
   batchSize = 100
   epoch = 20
   enableBackPropCheck = False
@@ -49,7 +53,7 @@ if __name__ == "__main__":
     tag = "ITER%d" % e
     # for j in range(10):
     while progress + batchSize < len(train) - tempTestSize:
-      batch = [(train[i].pixels - average)/variance for i in range(progress, progress + batchSize)]
+      batch = [(train[i].pixels - average) / varianceSqrt for i in range(progress, progress + batchSize)]
       batchlabel = [train[i].labelArray for i in range(progress, progress + batchSize)]
       target = np.array(batchlabel).transpose()
       IL.setData(np.array(batch).transpose(), batchSize)
@@ -95,7 +99,7 @@ if __name__ == "__main__":
     cost = datetime.datetime.now() - start
     Logger.warn("EPOCH", "epoch %d finished cost %d s" % (e, cost.total_seconds()))
 
-  batch = [(train[i].pixels - average)/variance for i in range(len(train) - tempTestSize, len(train))]
+  batch = [(train[i].pixels - average) / varianceSqrt for i in range(len(train) - tempTestSize, len(train))]
   batchlabel = [train[i].labelArray for i in range(len(train) - tempTestSize, len(train))]
   IL.setData(np.array(batch).transpose(), tempTestSize)
   IL.forward()
